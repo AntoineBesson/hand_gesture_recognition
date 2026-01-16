@@ -42,9 +42,9 @@ class TemporalConv(nn.Module):
         """
         residual = self.downsample(x)
         
-        x = self.bn(x)
         x = self.act(x)
         x = self.conv(x)
+        x = self.bn(x)
         x = self.dropout(x)
         
         return x + residual
