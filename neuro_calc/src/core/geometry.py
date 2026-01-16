@@ -45,3 +45,14 @@ def compute_basis_and_project(landmarks: np.ndarray) -> np.ndarray:
     # We transpose R because we are operating on row vectors (N, 3)
     # Result = centered_marks @ R.T
     return np.dot(centered_marks, R.T)
+
+def vectorize_sequence_canonicalization(sequence: np.ndarray) -> np.ndarray:
+    """
+    Applies the canonical projection to an entire temporal sequence.
+    Input: (T, 21, 3)
+    Output: (T, 21, 3)
+    """
+    # For a production pipeline, we would rewrite the Gram-Schmidt 
+    # using einsum for batch processing. For now, a list comprehension 
+    # wrapped in an array is sufficient and easier to debug.
+    return np.array([compute_basis_and_project(frame) for frame in sequence])
