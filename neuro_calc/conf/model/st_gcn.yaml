@@ -1,1 +1,8 @@
-# Architecture hyperparameters
+# Architecture Hyperparameters
+name: st_gcn_dual
+window_size: 64      # T: Temporal duration
+in_channels: 3       # x, y, z
+num_vertices: 42     # 21 Left + 21 Right
+hidden_dim: 64       # Width of the GCN layers
+dropout: 0.3
+stride: 2            # Temporal downsampling factor
