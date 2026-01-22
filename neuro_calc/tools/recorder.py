@@ -58,11 +58,9 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 
     return annotated_image
 
-def record_sample(class_name, cap, landmarker):
+def record_sample(class_name, cap, landmarker, start_time_ms):
     print(f"--- RECORDING {class_name} ---")
     sequence_data = []
-    
-    start_time_ms = int(time.time() * 1000)
     
     while len(sequence_data) < WINDOW_SIZE:
         ret, frame = cap.read()
@@ -123,7 +121,7 @@ def record_sample(class_name, cap, landmarker):
 
         cv2.imshow('NeuroCalc Recorder', annotated_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            return False
+            return False, start_time_ms
             
     # Save
     sequence_data = np.array(sequence_data)
@@ -131,7 +129,7 @@ def record_sample(class_name, cap, landmarker):
     filename = os.path.join(DATA_ROOT, class_name, f"seq_{timestamp}.npy")
     np.save(filename, sequence_data)
     print(f"Saved: {filename}")
-    return True
+    return True, start_time_ms
 
 def main():
     ensure_model_exists()
@@ -200,9 +198,7 @@ def main():
             elif key == ord('p'):
                 current_idx = (current_idx - 1) % len(CLASSES)
             elif key == 32: # SPACE
-                success = record_sample(target_cls, cap, landmarker)
-                # Reset base time after heavy recording operation to ensure monotonic consistency
-                start_time_ms = int(time.time() * 1000)
+                success, start_time_ms = record_sample(target_cls, cap, landmarker, start_time_ms)
                 if not success: break
 
         cap.release()

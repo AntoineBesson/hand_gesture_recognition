@@ -2,7 +2,7 @@ import hydra
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast  # Updated import
 from omegaconf import DictConfig
 from tqdm import tqdm
 import os
@@ -19,6 +19,7 @@ class Trainer:
     def __init__(self, cfg: DictConfig, model, train_loader, val_loader):
         self.cfg = cfg
         self.device = torch.device(cfg.training.device if torch.cuda.is_available() else "cpu")
+        self.use_amp = self.device.type == "cuda"  # Only use AMP on CUDA
         
         self.model = model.to(self.device)
         self.train_loader = train_loader
@@ -43,8 +44,8 @@ class Trainer:
         # Label Smoothing prevents the model from being "over-confident" on ambiguous frames
         self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
         
-        # 4. Mixed Precision Scaler (FP16)
-        self.scaler = GradScaler()
+        # 4. Mixed Precision Scaler (FP16) - Only enabled for CUDA
+        self.scaler = GradScaler(enabled=self.use_amp)
         
         self.best_acc = 0.0
 
@@ -65,7 +66,7 @@ class Trainer:
             self.optimizer.zero_grad(set_to_none=True)
             
             # Forward Pass (with Auto-Casting for speed)
-            with autocast():
+            with autocast(device_type=self.device.type, enabled=self.use_amp):
                 outputs = self.model(data) # (N, num_classes)
                 loss = self.criterion(outputs, targets)
             
@@ -95,12 +96,17 @@ class Trainer:
         correct = 0
         total = 0
         
+        if self.val_loader is None or len(self.val_loader) == 0:
+            log.warning("Validation loader is empty, skipping validation.")
+            return 0.0
+        
         with torch.no_grad():
             for data, targets in self.val_loader:
                 data = data.to(self.device)
                 targets = targets.to(self.device)
                 
-                outputs = self.model(data)
+                with autocast(device_type=self.device.type, enabled=self.use_amp):
+                    outputs = self.model(data)
                 _, predicted = outputs.max(1)
                 
                 total += targets.size(0)
@@ -129,16 +135,26 @@ class Trainer:
 def main(cfg: DictConfig):
     # 1. Reproducibility
     torch.manual_seed(cfg.project.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(cfg.project.seed)
     
     # 2. Data Pipeline
     log.info("Initializing Data Pipeline...")
     train_loader, val_loader = create_dataloaders(cfg)
+    
+    if train_loader is None or len(train_loader) == 0:
+        log.error("Training loader is empty! Check your data directory.")
+        return
     
     # 3. Model Initialization
     log.info("Compiling ST-GCN Architecture...")
     # Calculate num_classes dynamically from config list
     num_classes = len(cfg.classes)
     model = HandSignRecognizer(num_classes=num_classes)
+    
+    # Log device info
+    device = torch.device(cfg.training.device if torch.cuda.is_available() else "cpu")
+    log.info(f"Training on device: {device}")
     
     # 4. Training Loop
     trainer = Trainer(cfg, model, train_loader, val_loader)

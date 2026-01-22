@@ -17,7 +17,7 @@ class STGCNBlock(nn.Module):
         # 2. Temporal Modeling (Sequence Analysis)
         self.tcn = TemporalConv(out_channels, out_channels, stride=stride)
         
-        self.act = nn.ReLU(inplace=True)
+        self.act = nn.ReLU(inplace=False)
 
     def forward(self, x):
         # x: (N, C, T, V)
@@ -33,7 +33,7 @@ class HandSignRecognizer(nn.Module):
         super().__init__()
         
         # Input: 3 Channels (x, y, z) normalized
-        self.data_bn = nn.BatchNorm1d(21 * 3) 
+        self.data_bn = nn.BatchNorm1d(42 * 3) 
 
         # Deep Stack
         self.layers = nn.ModuleList([
@@ -49,7 +49,7 @@ class HandSignRecognizer(nn.Module):
         self.fcn = nn.Conv2d(256, num_classes, kernel_size=1)
 
     def forward(self, x):
-        # Input x: (N, 3, T, 21)
+        # Input x: (N, 3, T, 42)
         N, C, T, V = x.size()
         
         # Normalization (Crucial for variance scaling)

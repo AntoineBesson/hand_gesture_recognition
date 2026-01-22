@@ -22,8 +22,8 @@ class TemporalConv(nn.Module):
         )
         
         self.bn = nn.BatchNorm2d(out_channels)
-        self.act = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout(0.1, inplace=True)
+        self.act = nn.ReLU(inplace=False)
+        self.dropout = nn.Dropout(0.1, inplace=False)
         
         # Residual Path
         # If input/output channels differ or stride != 1, we need a 1x1 projection

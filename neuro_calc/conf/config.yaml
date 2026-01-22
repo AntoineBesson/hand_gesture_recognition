@@ -1,7 +1,10 @@
 defaults:
   - _self_
   - model: st_gcn
-  - data: default
+
+data:
+  path: "data/raw" 
+  batch_size: 32
 
 project:
   name: "neuro_calc"
