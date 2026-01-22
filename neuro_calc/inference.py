@@ -20,7 +20,7 @@ def draw_landmarks_on_image(rgb_image, detection_result):
     hand_landmarks_list = detection_result.hand_landmarks
     annotated_image = np.copy(rgb_image)
     h, w, _ = annotated_image.shape
-    
+
     # Topology lines
     CONNECTIONS = [
         (0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8),
@@ -46,7 +46,6 @@ def main(cfg: DictConfig):
     # 2. Load Model (Dual Hand Configuration)
     model = HandSignRecognizer(
         num_classes=len(cfg.classes),
-        num_vertices=42 # Match Training Topology
     )
     
     checkpoint_path = "best_model.pth"
@@ -54,7 +53,7 @@ def main(cfg: DictConfig):
         print("ERROR: best_model.pth not found! Train the model first.")
         return
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device,weights_only=False)
     model.load_state_dict(checkpoint['state_dict'])
     model.to(device)
     model.eval()
@@ -84,6 +83,14 @@ def main(cfg: DictConfig):
     print("System Online. Calculating...")
     
     start_time_ms = int(time.time() * 1000)
+    INFERENCE_STRIDE = 4 
+    frame_count = 0
+
+    # Cached results for smooth rendering
+    last_pred_label = ""
+    last_conf = 0.0
+    last_equation = ""
+    last_result = ""
 
     with torch.no_grad(), vision.HandLandmarker.create_from_options(options) as landmarker:
         while cap.isOpened():
@@ -99,6 +106,8 @@ def main(cfg: DictConfig):
             frame_timestamp_ms = int(time.time() * 1000) - start_time_ms
             detection_result = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
             
+            frame_count += 1
+
             # --- EXTRACT HANDS ---
             left_hand_raw = None
             right_hand_raw = None
@@ -124,7 +133,7 @@ def main(cfg: DictConfig):
             pred_label = ""
             conf = 0.0
             
-            if len(frame_buffer) == window_size:
+            if len(frame_buffer) == window_size and (frame_count % INFERENCE_STRIDE == 0):
                 # Prepare Tensor: (1, 3, T, 42)
                 input_tensor = np.array(frame_buffer)
                 input_tensor = torch.tensor(input_tensor, dtype=torch.float32)
@@ -139,33 +148,35 @@ def main(cfg: DictConfig):
                 idx = idx.item()
                 conf = conf.item()
                 
-                pred_label = cfg.classes[idx]
-                equation, result = solver.process_frame(idx, conf)
+                # Update cached values
+                last_pred_label = cfg.classes[idx]
+                last_conf = conf
+                last_equation, last_result = solver.process_frame(idx, conf)
             
-            # --- RENDER ---
+            # --- RENDER (Always run at full FPS using cached values) ---
             vis_frame = draw_landmarks_on_image(frame, detection_result)
             
-            # HUD
-            # Top: Equation
-            if equation:
+            # HUD - Top: Equation
+            if last_equation:
                 cv2.rectangle(vis_frame, (0, 0), (w, 60), (0,0,0), -1)
-                cv2.putText(vis_frame, f"EQ: {equation}", (20, 45), 
+                cv2.putText(vis_frame, f"EQ: {last_equation}", (20, 45), 
                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
             
             # Bottom: Result
-            if result:
+            if last_result:
                 cv2.rectangle(vis_frame, (0, h-80), (w, h), (0, 100, 0), -1)
-                cv2.putText(vis_frame, f"= {result}", (20, h-30), 
+                cv2.putText(vis_frame, f"= {last_result}", (20, h-30), 
                            cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
 
             # Debug Overlay (Top Right)
-            color = (0, 255, 0) if conf > 0.8 else (0, 0, 255)
-            cv2.putText(vis_frame, f"Pred: {pred_label} ({conf:.2f})", (w-250, 40), 
+            color = (0, 255, 0) if last_conf > 0.8 else (0, 0, 255)
+            cv2.putText(vis_frame, f"Pred: {last_pred_label} ({last_conf:.2f})", (w-250, 40), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             
             cv2.imshow('NeuroCalc Live', vis_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
 
     cap.release()
     cv2.destroyAllWindows()
