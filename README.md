@@ -5,7 +5,7 @@ This project is my second time tackling an image/video ML model. In my previous 
 
 For this project, I used mediapipe for hand recognition. The vertices and nodes are then normalised and projected in the same plane. I created my own dataset, 21 file per character. The model works pretty accurately, despite being pretty slow (the confidence interval could be widened to fasten the recognition, but we might lose accuracy). 
 
-<img width="951" height="633" alt="image" src="https://github.com/user-attachments/assets/a2dcdd69-3b55-49e4-9fd5-c801c46dffb5" />
+<img width="317" height="211" alt="image" src="https://github.com/user-attachments/assets/a2dcdd69-3b55-49e4-9fd5-c801c46dffb5" />
 
 ## How to use it yourself
 
