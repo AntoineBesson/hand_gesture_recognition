@@ -8,7 +8,7 @@ from tqdm import tqdm
 import os
 import logging
 
-# Import our custom architecture
+# Import my custom modules
 from src.pipeline.loader import create_dataloaders
 from src.models.st_gcn import HandSignRecognizer
 
@@ -26,7 +26,7 @@ class Trainer:
         self.val_loader = val_loader
         
         # 1. Optimization Strategy
-        # AdamW is superior to Adam for deep geometric models (better weight decay handling)
+        # I wanted to use ADAM, but according to Gemini and Claude, AdamW is superior to Adam for deep geometric models (better weight decay handling) so i will be using it
         self.optimizer = optim.AdamW(
             self.model.parameters(), 
             lr=cfg.training.lr, 

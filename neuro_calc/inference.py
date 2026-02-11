@@ -10,12 +10,12 @@ from omegaconf import DictConfig
 import time
 import os
 
-# Import Stack
+# Import of my modules
 from src.models.st_gcn import HandSignRecognizer
 from src.core.geometry import process_dual_hand_frame
 from src.core.solver import GestureSolver
 
-# --- VISUALIZATION HELPER (Zero-Dependency) ---
+# VISUALIZATION HELPER (Zero-Dependency) for inference rendering
 def draw_landmarks_on_image(rgb_image, detection_result):
     hand_landmarks_list = detection_result.hand_landmarks
     annotated_image = np.copy(rgb_image)
@@ -41,7 +41,7 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 def main(cfg: DictConfig):
     # 1. Device Setup
     device = torch.device(cfg.training.device if torch.cuda.is_available() else "cpu")
-    print(f"--- NEURO_CALC INFERENCE ENGINE ({device}) ---")
+    print(f"NEURO_CALC INFERENCE ENGINE ON ({device}) ")
 
     # 2. Load Model (Dual Hand Configuration)
     model = HandSignRecognizer(
@@ -77,8 +77,7 @@ def main(cfg: DictConfig):
     frame_buffer = deque(maxlen=window_size)
     
     # 5. Sensor Loop
-    cap = cv2.VideoCapture(0)
-    # cap = cv2.VideoCapture(1) # Try 1 if 0 fails
+    cap = cv2.VideoCapture(0) #this is default camera, if you want to use another camera change 0 to 1
     
     print("System Online. Calculating...")
     

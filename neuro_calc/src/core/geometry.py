@@ -3,10 +3,10 @@ import numpy as np
 # --- AJOUTEZ CETTE FONCTION ---
 def process_dual_hand_frame(left_hand: np.ndarray, right_hand: np.ndarray) -> np.ndarray:
     """
-    Prend deux mains (21, 3), canonicalise la SCÈNE unifiée et renvoie (42, 3).
-    Gère les mains manquantes (remplissage par des zéros).
+    Prend deux mains (21, 3), canonicalise le vecteur unifiée et renvoie (42, 3).
+    Les mains manquantes sont remplies par des zéros.
     """
-    # 1. Gestion des mains manquantes ou vides
+    #Gestion des mains manquantes ou vides
     if left_hand is None or left_hand.size == 0 or np.all(left_hand == 0):
         left_hand = np.zeros((21, 3))
     if right_hand is None or right_hand.size == 0 or np.all(right_hand == 0):
@@ -15,9 +15,9 @@ def process_dual_hand_frame(left_hand: np.ndarray, right_hand: np.ndarray) -> np
     has_left = np.any(left_hand)
     has_right = np.any(right_hand)
 
-    # 2. Logique de projection selon le cas
-    if has_left and has_right:
-        # --- MODE DOUBLE MAIN ---
+    #Logique de projection selon le cas
+    if has_left and has_right: #si deux mains
+
         # Centre: Point médian entre les poignets
         wrist_l = left_hand[0]
         wrist_r = right_hand[0]
@@ -37,7 +37,7 @@ def process_dual_hand_frame(left_hand: np.ndarray, right_hand: np.ndarray) -> np
         v_up_r = right_hand[9] - right_hand[0]
         y_approx = (v_up_l + v_up_r) / 2.0
         
-        # Orthogonalisation (Gram-Schmidt)
+        # Orthogonalisation (procédé de Gram-Schmidt)
         z_axis = np.cross(x_axis, y_approx)
         z_axis /= (np.linalg.norm(z_axis) + 1e-6)
         
@@ -55,17 +55,14 @@ def process_dual_hand_frame(left_hand: np.ndarray, right_hand: np.ndarray) -> np
         
         return np.concatenate([l_proj, r_proj], axis=0) / (scale + 1e-6)
 
-    elif has_right:
-        # --- MODE MAIN DROITE SEULE ---
-        # On utilise l'ancienne logique pour la droite, zéros pour la gauche
+    elif has_right: #si main droite seule
+        # On utilise l'ancienne logique pour la droite, zéros pour la gauche 
         return np.concatenate([np.zeros((21,3)), _canonicalize_single(right_hand)], axis=0)
         
-    elif has_left:
-        # --- MODE MAIN GAUCHE SEULE ---
+    elif has_left: #si main gauche seule idem
         return np.concatenate([_canonicalize_single(left_hand), np.zeros((21,3))], axis=0)
         
-    else:
-        # --- VIDE ---
+    else: #si aucune main
         return np.zeros((42, 3))
 
 def _canonicalize_single(hand):
@@ -87,6 +84,3 @@ def _canonicalize_single(hand):
     
     # Projection et normalisation par la taille de la main
     return np.dot(centered, R.T) / (norm_primary + 1e-6)
-
-# Gardez votre ancienne fonction compute_basis_and_project si besoin, 
-# mais process_dual_hand_frame est celle utilisée par le dataset.

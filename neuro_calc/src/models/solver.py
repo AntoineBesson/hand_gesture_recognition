@@ -1,1 +1,0 @@
-# The RPN calculator logic

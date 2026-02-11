@@ -17,6 +17,7 @@ class STGCNBlock(nn.Module):
         # 2. Temporal Modeling (Sequence Analysis)
         self.tcn = TemporalConv(out_channels, out_channels, stride=stride)
         
+        # 3. Activation ()
         self.act = nn.ReLU(inplace=False)
 
     def forward(self, x):

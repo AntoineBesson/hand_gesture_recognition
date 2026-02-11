@@ -12,7 +12,7 @@ class GestureSolver:
         self.stability_frames = stability_frames
         self.conf_thresh = confidence_threshold
         
-        # Mapping (Must match your Training Labels!)
+        # Mapping (Must match the Training Labels, so if any changes, also reflect here)
         self.vocab = {
             0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 
             5: "5", 6: "6", 7: "7", 8: "8", 9: "9",
@@ -21,11 +21,11 @@ class GestureSolver:
         
         # State Management
         self.history_buffer = deque(maxlen=stability_frames)
-        self.command_stack: List[str] = [] # e.g. ["3", "+", "5"]
+        self.command_stack: List[str] = [] #to hold the current equation
         self.last_committed_token: Optional[str] = None
         self.current_result: Optional[str] = None
         
-        # Cooldown prevents rapid-fire triggering of the same number
+        #A cooldown to prevent rapid triggering of the same number
         self.cooldown_counter = 0
 
     def process_frame(self, class_idx: int, probability: float) -> Tuple[str, str]:
@@ -37,16 +37,16 @@ class GestureSolver:
             self.cooldown_counter -= 1
             return self._get_display_strings()
 
-        # 1. Filter Low Confidence
+        #Filter Low Confidence
         if probability < self.conf_thresh:
             self.history_buffer.clear() # Reset stability if uncertain
             return self._get_display_strings()
 
-        # 2. Add to History
+        #Add to History
         token = self.vocab.get(class_idx, "?")
         self.history_buffer.append(token)
 
-        # 3. Check Stability (Are all frames in buffer identical?)
+        #Check Stability
         if len(self.history_buffer) == self.stability_frames:
             if len(set(self.history_buffer)) == 1:
                 stable_token = self.history_buffer[0]
@@ -58,7 +58,7 @@ class GestureSolver:
         """
         Logic to accept a token into the equation stack.
         """
-        # Hysteresis: Don't repeat the same token immediately (unless it's a number after an op)
+        # Don't repeat the same token immediately (unless it's a number after an op)
         if token == self.last_committed_token:
             return
 

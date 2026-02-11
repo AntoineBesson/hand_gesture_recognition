@@ -27,7 +27,7 @@ class HandGraph:
         neighbor_link = left_hand_edges + right_hand_edges
         
         self.edge = self.self_link + neighbor_link
-        self.center = 0 # Left Wrist as primary root
+        self.center = 0 #I use the left Wrist as the primary root
 
         if strategy == 'spatial':
             self.A = self.get_spatial_graph(self.num_node, self.self_link, neighbor_link)
